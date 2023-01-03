@@ -1,0 +1,50 @@
+Package: missSuperLearner
+Title: Super Learning That Handles Missing Data
+Version: 0.1.0
+Authors@R: c(
+    person(given = "Antoine",
+           family = "Chambaz",
+           role = c("aut", "cre"),
+           email = "antoine.chambaz@u-paris.fr"
+           ),
+    person(given = "Nicolas",
+           family = "Gatulle",
+           role = c("aut"),
+           email = "nicolas.gatulle@aphp.fr"
+           ),
+    person(given = "Julie",
+           family = "Josse",
+           role = c("aut"),
+           email = "julie.josse@inria.fr"
+           ),
+    person(given = "Pan",
+           family = "Zhao",
+           role = c("aut"),
+           email = "pan.zhao@inria.fr"
+           ))
+Description: The main functions of this package adapt the 'SuperLearner::SuperLearner' and 'SuperLearner::CV.SuperLearner' functions to handle missing data.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: 
+    R (>= 3.6.0),
+    SuperLearner
+Imports: 
+    cvAUC, 
+    grf, 
+    mice,
+    stats
+Suggests: 
+    ggplot2,
+    knitr,
+    precrec,
+    rmarkdown,
+    ROCR,
+    VIM
+RoxygenNote: 7.2.1
+NeedsCompilation: no
+Author: Antoine Chambaz [aut, cre],
+  Nicolas Gatulle [aut],
+  Julie Josse [aut],
+  Pan Zhao [aut]
+Maintainer: Pan Zhao <pan.zhao@inria.fr>
+VignetteBuilder: knitr
