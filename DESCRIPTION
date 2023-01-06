@@ -26,13 +26,12 @@ Description: The main functions of this package adapt the 'SuperLearner::SuperLe
 License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: 
-    R (>= 3.6.0),
-    SuperLearner
+    R (>= 3.6.0)
 Imports: 
-    cvAUC, 
     grf, 
     mice,
-    stats
+    stats,
+    SuperLearner
 Suggests: 
     ggplot2,
     knitr,
@@ -40,7 +39,7 @@ Suggests:
     rmarkdown,
     ROCR,
     VIM
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
 NeedsCompilation: no
 Author: Antoine Chambaz [aut, cre],
   Nicolas Gatulle [aut],

@@ -191,14 +191,14 @@ CV.missSuperLearner <- function (Y, X,
                                  cvControl = list(), innerCvControl = list(), obsWeights = NULL,
                                  saveAll = TRUE, parallel = "seq", env = parent.frame()) {
   call <- match.call()
-
+  requireNamespace("SuperLearner")
   N <- dim(X)[1L]
   p <- dim(X)[2L]
   if (any(names(cvControl) == "V") & !is.null(V)) {
     stop(paste0("You specified a value for V and a value in the cvControl, please only use one, preferably the cvControl"))
   }
   
-  cvControl <- do.call("SuperLearner.CV.control", cvControl)
+  cvControl <- do.call(SuperLearner::SuperLearner.CV.control, cvControl)
   if (!is.null(V)) {
     cvControl$V <- V
   }
@@ -230,11 +230,17 @@ CV.missSuperLearner <- function (Y, X,
   if (!identical(length(obsWeights), N)) {
     stop("obsWeights vector must have the same dimension as Y")
   }
+  
   if (is.character(method)) {
-    if (exists(method, mode = "list")) {
-      method <- get(method, mode = "list")
-    } else if (exists(method, mode = "function")) {
-      method <- get(method, mode = "function")()
+    if (exists(method, envir = asNamespace("SuperLearner"))) {
+      method_fun <- get(method, envir = asNamespace("SuperLearner"))
+      method <- method_fun()
+    } else {
+      if (exists(method, mode = "list")) {
+        method <- get(method, mode = "list")
+      } else if (exists(method, mode = "function")) {
+        method <- get(method, mode = "function")()
+      }
     }
   } else if (is.function(method)) {
     method <- method()

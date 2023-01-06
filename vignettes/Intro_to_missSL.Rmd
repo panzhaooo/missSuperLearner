@@ -1,7 +1,7 @@
 ---
 title: "Introduction to missSuperLearner"
 author: Pan Zhao, Nicolas Gatulle, Julie Josse and Antoine Chambaz
-date: September 5, 2022
+date: January 4th, 2023
 output: 
   rmarkdown::html_vignette:
     toc: true
@@ -22,8 +22,9 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-This vignette introduces the basic concepts for the super learning algorithm that 
-is able to handle missing data, which is implemented in the `missSuperLearner` package.
+This vignette  introduces the  basic concepts for  a super  learning algorithm
+that is able to handle missing  data, as implemented in the `missSuperLearner`
+package.
 
 # Basic Setup
 
@@ -31,12 +32,13 @@ In this section, we introduce the notation and review the super learning algorit
 
 ## Notation
 
-Observe the independent and identically distributed data points $O_i = (Y_i, X_i), i = 1, ... ,n$, 
-where $Y$ is the outcome of interest and $X$ is a $p$-dimensional covariate. 
-The objective is to estimate the function $f_0(X) = E(Y \,|\, X)$. The function can be expressed 
-as the minimizer of the expected loss:
-$$f_0(X) = \arg\min_f E[L(O, f(X))]$$
-where the loss function is, for example, the squared error loss $L_2 = (Y - f(X))^2$.
+Supose we  observe independent copies $O_i  = (X_i, Y_i)$,  $i = 1, \ldots   ,n$ of
+$(X,Y)\sim P$ where $X$ is a  $p$-dimensional covariate and $Y$ is the outcome
+of  interest  and  that  the  objective is  to  estimate  the  function  $f_P$
+identified by the loss function $\ell:\mathcal{F}  \to$.  The function can be
+expressed as the minimizer of the expected loss: 
+$$f_0(X) = \arg\min_f E[L(O, f(X))]$$ 
+where the loss function is, for example, the squared error loss $L_2= (Y - f(X))^2$.
 
 Let $P_n$ denote the empirical distribution over the data. 
 
@@ -130,9 +132,9 @@ screening and prediction functions, respectively.
 
 # References
 
-[1] Van der Laan, M. J., Polley, E. C., & Hubbard, A. E. (2007). **Super learner.** *Statistical applications in genetics and molecular biology*, 6(1). https://doi.org/10.2202/1544-6115.1309
+[1] van der Laan, M. J., Polley, E. C., & Hubbard, A. E. (2007). **Super learner.** *Statistical applications in genetics and molecular biology*, 6(1). https://doi.org/10.2202/1544-6115.1309
 
-[2] Polley, E. C., & Van Der Laan, M. J. (2010). **Super learner in prediction.** *U.C. Berkeley Division of Biostatistics Working Paper Series*. Paper 226. https://biostats.bepress.com/ucbbiostat/paper266/
+[2] Polley, E. C., & van Der Laan, M. J. (2010). **Super learner in prediction.** *U.C. Berkeley Division of Biostatistics Working Paper Series*. Paper 226. https://biostats.bepress.com/ucbbiostat/paper266/
 
 [3] Little, R. J., & Rubin, D. B. (2019). **Statistical analysis with missing data** (Vol. 793). John Wiley & Sons.
 

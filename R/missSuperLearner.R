@@ -231,13 +231,19 @@ missSuperLearner <- function (Y, X, newX = NULL, family = stats::gaussian(), SL.
                               mice.params = list(m = 5), max.try = 10,
                               method = "method.NNLS", id = NULL, verbose = FALSE, control = list(), 
                               cvControl = list(), obsWeights = NULL, outputX = FALSE, env = parent.frame()) {
+  requireNamespace("SuperLearner")
   time_start = proc.time()
   
   if (is.character(method)) {
-    if (exists(method, mode = "list")) {
-      method <- get(method, mode = "list")
-    } else if (exists(method, mode = "function")) {
-      method <- get(method, mode = "function")()
+    if (exists(method, envir = asNamespace("SuperLearner"))) {
+      method_fun <- get(method, envir = asNamespace("SuperLearner"))
+      method <- method_fun()
+    } else {
+      if (exists(method, mode = "list")) {
+        method <- get(method, mode = "list")
+      } else if (exists(method, mode = "function")) {
+        method <- get(method, mode = "function")()
+      }
     }
   } else if (is.function(method)) {
     method <- method()
@@ -249,8 +255,8 @@ missSuperLearner <- function (Y, X, newX = NULL, family = stats::gaussian(), SL.
     sapply(method$require, function(x) require(force(x), character.only = TRUE))
   }
   
-  control <- do.call("SuperLearner.control", control)
-  cvControl <- do.call("SuperLearner.CV.control", cvControl)
+  control <- do.call(SuperLearner::SuperLearner.control, control)
+  cvControl <- do.call(SuperLearner::SuperLearner.CV.control, cvControl)
   
   library <- .create.missLibrary(SL.library, imputeAlgo)
   .check.SL.library(library = c(unique(library$library$predAlgorithm), library$screenAlgorithm), imputeAlgo)
@@ -331,7 +337,7 @@ missSuperLearner <- function (Y, X, newX = NULL, family = stats::gaussian(), SL.
   
   .crossValFUN <- function(valid, Y, dataX, id, obsWeights, library,
                            kScreen, kImpute, k, p, libraryNames, saveCVFitLibrary) {
-    # imputation
+    # Imputation
     tempOutcome <- Y[-valid]
     tempId <- id[-valid]
     tempObsWeights <- obsWeights[-valid]
@@ -345,8 +351,12 @@ missSuperLearner <- function (Y, X, newX = NULL, family = stats::gaussian(), SL.
     tempWhichScreen <- array(NA, dim = c(kScreen, p, kImpute))
     for (s in seq(kScreen)) {
       for (i in seq(kImpute)) {
-        if (any(library$library$rowScreen == s & library$library$numImpute ==i)) {
-          screen_fn <- get(library$screenAlgorithm[s], envir = env)
+        if (any(library$library$rowScreen == s & library$library$numImpute == i)) {
+          if (exists(library$screenAlgorithm[s], envir = asNamespace("SuperLearner"))) {
+            screen_fn <- get(library$screenAlgorithm[s], envir = asNamespace("SuperLearner"))
+          } else {
+            screen_fn <- get(library$screenAlgorithm[s], envir = env)
+          }
           testScreen <- try(do.call(screen_fn, list(Y = tempOutcome, X = tempLearn[[i]], 
                                                     family = family, id = tempId, obsWeights = tempObsWeights)))
           if(inherits(testScreen, "try-error")) {
@@ -374,7 +384,11 @@ missSuperLearner <- function (Y, X, newX = NULL, family = stats::gaussian(), SL.
     # Prediction
     for (s in seq(k)) {
       i <- library$library$numImpute[s]
-      pred_fn <- get(library$library$predAlgorithm[s], envir = env)
+      if (exists(library$library$predAlgorithm[s], envir = asNamespace("SuperLearner"))) {
+        pred_fn <- get(library$library$predAlgorithm[s], envir = asNamespace("SuperLearner"))
+      } else {
+        pred_fn <- get(library$library$predAlgorithm[s], envir = env)
+      }
       testAlg <- try(do.call(pred_fn, list(Y = tempOutcome, 
                                            X = subset(tempLearn[[i]], select = tempWhichScreen[library$library$rowScreen[s], , i], drop=FALSE), 
                                            newX = subset(tempValid[[i]], select = tempWhichScreen[library$library$rowScreen[s], , i], drop=FALSE), 
@@ -454,7 +468,11 @@ missSuperLearner <- function (Y, X, newX = NULL, family = stats::gaussian(), SL.
   for (s in seq(kScreen)) {
     for (i in seq(kImpute)) {
       if (any(library$library$rowScreen == s & library$library$numImpute ==i)) {
-        screen_fn <- get(library$screenAlgorithm[s], envir = env)
+        if (exists(library$screenAlgorithm[s], envir = asNamespace("SuperLearner"))) {
+          screen_fn <- get(library$screenAlgorithm[s], envir = asNamespace("SuperLearner"))
+        } else {
+          screen_fn <- get(library$screenAlgorithm[s], envir = env)
+        }
         testScreen <- try(do.call(screen_fn, list(Y = Y, X = impX[[i]], 
                                                   family = family, id = id, 
                                                   obsWeights = obsWeights)))
@@ -471,7 +489,11 @@ missSuperLearner <- function (Y, X, newX = NULL, family = stats::gaussian(), SL.
   # prediction
   .predFun <- function(index, lib, Y, dataX, newX, whichScreen, 
                        family, id, obsWeights, verbose, control, libraryNames) {
-    pred_fn = get(lib$predAlgorithm[index], envir = env)
+    if (exists(lib$predAlgorithm[index], envir = asNamespace("SuperLearner"))) {
+      pred_fn <- get(lib$predAlgorithm[index], envir = asNamespace("SuperLearner"))
+    } else {
+      pred_fn <- get(lib$predAlgorithm[index], envir = env)      
+    }
     s <- lib$rowScreen[index]
     i <- lib$numImpute[index]
     testAlg <- try(do.call(pred_fn, list(Y = Y, 
@@ -530,8 +552,8 @@ missSuperLearner <- function (Y, X, newX = NULL, family = stats::gaussian(), SL.
     getCoef$cvRisk[as.logical(errorsInCVLibrary)] <- NA
   }
   
-  time_end = proc.time()
-  times = list(everything = time_end - time_start, 
+  time_end <- proc.time()
+  times <- list(everything = time_end - time_start, 
                train = time_train, 
                predict = time_predict)
   
