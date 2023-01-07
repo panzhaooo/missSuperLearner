@@ -188,24 +188,23 @@ missing data implicitly using the missing incorporated in attributes criterion
 }
 \section{Functions}{
 \itemize{
-\item \code{missSuperLearner()}: A Super Learner Prediction Function That Handles Missing Data
-
+\item \code{missSuperLearner}: A Super Learner Prediction Function That Handles Missing Data
 }}
+
 \examples{
 
-\dontrun{
 ## simulate data
 set.seed(1)
 ## training set
-n <- 500
-p <- 10
+n <- 400
+p <- 5
 X <- matrix(rnorm(n * p), nrow = n, ncol = p)
 colnames(X) <- paste("X", 1:p, sep="")
 X <- data.frame(X)
 Y <- X[, 1] + sqrt(abs(X[, 2] * X[, 3])) + X[, 2] - X[, 3] + rnorm(n)
 
 ## test set
-m <- 1000
+m <- 500
 newX <- matrix(rnorm(m * p), nrow = m, ncol = p)
 colnames(newX) <- paste("X", 1:p, sep="")
 newX <- data.frame(newX)
@@ -219,13 +218,13 @@ for (i in 1:p) {
 }
 
 # generate Library and run Super Learner
-SL.library <- c("SL.glm", "SL.ranger", "SL.gam",
-                "SL.grf", "SL.mean")
+SL.library <- c("SL.glm", "SL.grf", "SL.mean")
 test <- missSuperLearner(Y = Y, X = X, newX = newX, SL.library = SL.library,
-                         imputeAlgo = c("mean", "median", "mice"),
+                         imputeAlgo = c("mean", "median"),
                          verbose = TRUE, method = "method.NNLS")
 test
 
+\dontrun{
 # library with screening
 SL.library <- list(c("SL.glmnet", "All"), 
                    c("SL.glm", "screen.randomForest", "All", "screen.SIS"), 
