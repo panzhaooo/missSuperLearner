@@ -35,6 +35,7 @@ Imports:
 Suggests: 
     ggplot2,
     knitr,
+    parallel,
     precrec,
     rmarkdown,
     ROCR,
