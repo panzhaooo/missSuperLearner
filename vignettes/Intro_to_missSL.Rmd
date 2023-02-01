@@ -1,7 +1,7 @@
 ---
 title: "Introduction to missSuperLearner"
 author: Pan Zhao, Nicolas Gatulle, Julie Josse and Antoine Chambaz
-date: January 4th, 2023
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   rmarkdown::html_vignette:
     toc: true

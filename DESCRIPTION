@@ -1,6 +1,6 @@
 Package: missSuperLearner
 Title: Super Learning That Handles Missing Data
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: c(
     person(given = "Antoine",
            family = "Chambaz",

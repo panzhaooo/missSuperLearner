@@ -188,9 +188,9 @@ missing data implicitly using the missing incorporated in attributes criterion
 }
 \section{Functions}{
 \itemize{
-\item \code{missSuperLearner}: A Super Learner Prediction Function That Handles Missing Data
-}}
+\item \code{missSuperLearner()}: A Super Learner Prediction Function That Handles Missing Data
 
+}}
 \examples{
 
 ## simulate data

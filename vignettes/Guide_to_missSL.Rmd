@@ -1,7 +1,7 @@
 ---
-title: "Guide to missSuperLearner"
+title: "Guide to `missSuperLearner`"
 author: Pan Zhao, Nicolas Gatulle, Julie Josse and Antoine Chambaz
-date: September 5, 2022
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   rmarkdown::html_vignette:
     toc: true
@@ -22,94 +22,155 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(missSuperLearner)
-
-# to save compilation time, some code chunks will not be executed
-do_it_compile <- FALSE
+## To  save  compilation time,  some  code  chunks  will  not be  run.  Change
+## 'do_it_compile' to 'TRUE' to run everything.
+do_it_compile <- c(TRUE, FALSE)[1]
+do_it_compile_2 <- c(TRUE, FALSE)[2]
 ```
 
 # Introduction
 
-This vignette is a practical guide for using the `missSuperLearner` package, which 
-builds on the `SuperLearner` package. If you are unfamiliar with the `SuperLearner` 
-package, it is advisable to read first this [Guide to SuperLearner](https://cran.r-project.org/web/packages/SuperLearner/vignettes/Guide-to-SuperLearner.html) 
-that this guide follows closely.
+Paraphrasing its  DESCRIPTION file, the `SuperLearner`  package implements the
+super  learning prediction  algorithm  and contains  a  library of  prediction
+algorithms to be  used by the super  learner.  If you are  unfamiliar with the
+`SuperLearner`  package,  it  is  advisable  to  read  first  this  [Guide  to
+SuperLearner](https://cran.r-project.org/web/packages/SuperLearner/vignettes/Guide-to-SuperLearner.html).
+
+The  `missSuperLearner` package  builds  upon the  `SuperLearner` package  and
+extends  its  functionalities  **by  allowing  missing  data**.   The  present
+vignette, which follows  closely the above guide, is  a practical introduction
+to its use.
 
 # Dataset
 
 We use the `diabetes` dataset which is available from the `VIM` package.
 
 ```{r}
-# Load the dataset from the VIM package
+## Load the dataset from the VIM package
 data(diabetes, package = "VIM")
 
-# Info of the diabetes dataset
+## Info of the diabetes dataset
 ?VIM::diabetes
 
-# Summary of the dataset
+## Summary of the dataset
 summary(diabetes)
 
-# Check for missing data
+## Some data are missing
 colSums(is.na(diabetes))
 ```
 
 ```{r}
-# Get the outcome variable from the data
+## Let's extract the outcome variable from the data...
 outcome <- diabetes$Outcome
 
-# Create a dataframe to contain the explanatory variables
+# ... and create a dataframe that only contains what will be the explanatory variables
 data <- subset(diabetes, select = -Outcome)
 
-# Check structure of our dataframe
+## Let's check the structure of the resulting dataframe...
 str(data)
 
-# Review the dimensions
+# and, in particular, its dimensions
 dim(data)
 ```
 
 ```{r}
-# Set a seed for reproducibility
+## Let's set a seed for reproducibility
 set.seed(1)
 
-# Reduce to a dataset of 400 observations to speed up model fitting
+## We reduce the number of observations to speed up model fitting...
 train_obs <- sample(nrow(data), 400)
-# training sample
 x_train <- data[train_obs, ]
 
-# Create a holdout set for evaluating model performance.
-# Note: cross-validation is even better than a single holdout sample.
+## and create a holdout set for evaluating model performance
+##
+## Note: cross-validation would be even better than a single holdout sample
 x_holdout <- data[-train_obs, ]
 
-# The outcome must be a numeric vector
+## The outcome must be a numeric vector
 outcome <- as.numeric(outcome == "yes")
-
 y_train <- outcome[train_obs]
 y_holdout <- outcome[-train_obs]
 
-# Review the outcome variable distribution.
+## Let's review the outcome variable distribution
 table(y_train, useNA = "ifany")
 ```
 
-# Review available models
+# Available algorithms
+
+The `SuperLearner` package comes with a collection of prediction and screening algorithms.
 
 ```{r}
 SuperLearner::listWrappers()
 ```
 
-Note that we add a new `grf` learner ([generalized random forests](https://grf-labs.github.io/grf/index.html)). Look at the code for a model.
+It   is   easy   to   enrich   the  collection,   by   using   the   functions
+`SuperLearner::SL.template`,  `SuperLearner::predict.SL.template`   (see  also
+`SuperLearner::write.SL.template`). The `missSuperLearner` package contains an
+algorithm which is not proposed by `SuperLearner`: `grf`, an implementation of
+[generalized random forests](https://grf-labs.github.io/grf/index.html).
+
 ```{r}
+library(missSuperLearner)
 SL.grf
+missSuperLearner:::predict.SL.grf
 ```
 
-For maximum accuracy one might try at least the following models: glmnet, ranger, XGBoost, SVM, and bartMachine. These should ideally be tested with multiple hyperparameter settings for each algorithm.
+In this vignette, we propose to rely on the following prediction algorithms: 
 
-# Fit individual models
+- glmnet: see [`glmnet`](https://cran.r-project.org/package=glmnet);
 
-Let's fit 2 separate models: lasso (sparse, penalized OLS) and random forest. We specify `family = binomial()` because we are predicting a binary outcome, aka classification. With a continuous outcome we would specify `family = gaussian()`.
+- ranger: see [`ranger`](https://cran.r-project.org/package=ranger);
+
+- XGBoost: see [`xgboost`](https://cran.r-project.org/package=xgboost);
+
+- SVM: see [`e1071`](https://cran.r-project.org/package=e1071);
+
+- bartMachine: see [`bartMachine`](https://cran.r-project.org/package=bartMachine).
+
+The  algorithms   should  ideally  be  tested   with  multiple  hyperparameter
+settings. This is illustrated in Section \@ref(hyperparameters).
+
+To deal with missing data, we rely on three algorithms:
+
+- the  so-called `mean`  and `median` algorithms  simply replace  missing data
+  with the empirical  mean or median as computed based  on available data, see
+  `missSuperLearner::meanImpute` and `missSuperLearner::medianImpute`;
+  
+- the    so-called    `mice`     algorithm    builds    upon    the
+  [`mice`](https://cran.r-project.org/package=mice)        package,        see
+  `missSuperLearner::miceImpute`.
+
+# Training the super learner
+
+In    this   section,    we   first    train   separately    two   algorithms,
+`SuperLearner::SL.glmnet`  and  `SuperLearner::SL.ranger`,  combined  upstream
+with   the   three   completion   algorithms   `missSuperLearner::meanImpute`,
+`missSuperLearner::medianImpute` and  `missSuperLearner::miceImpute`. Next, we
+train     concomitantly     four    algorithms,     `SuperLearner::SL.glmnet`,
+`SuperLearner::SL.ranger`,  `SuperLearner::SL.mean` and  `SL.grf`, once  again
+combined upstream  with the same  three completion algorithms.   The algorithm
+`SuperLearner::SL.mean` is  a very stable  (and weak) algorithm that  uses the
+mean outcome (as  learned from the training data) as  a prediction whatever is
+the vector of covariates.
+
+The argument `method` in  the chunks of code below specifies  a notion of risk
+and    how    to    better    combine    the    algorithms.     By    choosing
+`SuperLearner::method.NNLS` we request
+
+- the use of the least squares risk
+
+- the search for a meta-algorithm whose predictions are convex combinations of
+  the base algorithms' predictions.
+
+Since we want to predict a binary outcome, we specify `family = binomial()` in
+the call  to `missSuperLearner`.  For  a continuous outcome, we  would specify
+`family = gaussian()`.
+
+## Training `SL.glmnet`
 
 ```{r, eval=do_it_compile}
 set.seed(1)
-
-# Fit lasso model
+## Train SL.glmnet
 sl_lasso <- missSuperLearner(Y = y_train, X = x_train, family = "binomial",
                              method = SuperLearner::method.NNLS,
                              imputeAlgo = c("mean", "median", "mice"),
@@ -118,139 +179,165 @@ sl_lasso
 ```
 
 ```{r, eval=do_it_compile}
-# Review the elements in the missSuperLearner object
+## Let's review the elements in the missSuperLearner object
 names(sl_lasso)
 ```
 
 ```{r, eval=do_it_compile}
-# Here is the risk of the best model (discrete SuperLearner winner).
+## Here is the risk of the best algorithm (the so-called discrete SuperLearner)
 sl_lasso$cvRisk[which.min(sl_lasso$cvRisk)]
 ```
 
 ```{r, eval=do_it_compile}
-# Here is the raw glmnet result object:
+## Here is the raw glmnet result object
 str(sl_lasso$fitLibrary$SL.glmnet_All_mean$object, max.level = 1)
 ```
 
+## Training `SL.ranger`
+
 ```{r, eval=do_it_compile}
-# Fit random forest.
+set.seed(1)
+## Train SL.ranger
 sl_rf <- missSuperLearner(Y = y_train, X = x_train, family = binomial(),
+                          method = SuperLearner::method.NNLS,
                           imputeAlgo = c("mean", "median", "mice"),
                           SL.library = "SL.ranger")
 sl_rf
 ```
 
-Risk is a measure of model accuracy or performance. We want our models to minimize the estimated risk, which means the model is making the fewest mistakes in its prediction. It's basically the mean-squared error in a regression model, but you can customize it if you want.
+The  `Risk` column  reports  measures  of performance  in  terms  of the  risk
+function      specified     by      the      `method`     argument.       Like
+`SuperLearner::SuperLearner`,     `missSuperLearner::missSuperLearner`    uses
+cross-validation to  estimate the risk.  By  default, 10-fold cross-validation
+is implemented. That can be customized  using the `cvControl` argument and the
+function `SuperLearner::SuperLearner.CV.control`.   The `Coef`  column reveals
+what are the weights attributed to all algorithms.
 
-missSuperLearner is using cross-validation to estimate the risk on future data. By default it uses 10 folds; use the cvControl argument to customize.
 
-The coefficient column tells us the weight or importance of each individual learner in the overall ensemble. By default the weights are always greater than or equal to 0 and sum to 1. In this case we only have one algorithm so the coefficient has to be 1. If a coefficient is 0 it means that the algorithm isn't being used in the missSuperLearner ensemble.
+## Training `SL.mean`, `SL.glmnet`, `SL.ranger` and `SL.grf`
 
-# Fit multiple models
-
-Instead of fitting the models separately and looking at the performance (lowest risk), we can fit them simultaneously. missSuperLearner will then tell us which one is best (discrete winner) and also create a weighted average of multiple models.
-
-We include the mean of `Y` ("SL.mean") as a benchmark algorithm. It is a very simple prediction so the more complex algorithms should do better than the sample mean. We hope to see that it isn't the best single algorithm (discrete winner) and has a low weight in the weighted-average ensemble. If it is the best algorithm something has likely gone wrong.
+This is very similar to what we ran earlier.
 
 ```{r, eval=do_it_compile}
 set.seed(1)
+## Train SL.mean, SL.glmnet, SL.ranger and SL.grf
 sl <- missSuperLearner(Y = y_train, X = x_train, family = binomial(),
+                       method = SuperLearner::method.NNLS,
                        imputeAlgo = c("mean", "median", "mice"),
                        SL.library = c("SL.mean", "SL.glmnet", "SL.ranger", "SL.grf"))
 sl
 ```
 
+Again,  the `Coef`  column  reveals  which (combination  of  a completion  and
+prediction) algorithm(s) is given more importance in the meta-algorithm. So we
+have  an  automatic ensemble  of  multiple  learners/algorithms based  on  the
+qcross-validated performances of those learners, nice!
+
 ```{r, eval=do_it_compile}
-# Review how long it took to run the SuperLearner:
+## Review how long it took to run the SuperLearner
 sl$times$everything
 ```
 
-Again, the coefficient is how much weight missSuperLearner puts on that model in the weighted-average. So if coefficient = 0 it means that model is not used at all. Here we see that random forest with median imputation is given the most weight, following by lasso with median imputation.
+# Predicting on new data
 
-So we have an automatic ensemble of multiple learners based on the cross-validated performance of those learners, nice!
-
-# Predict on new data
-
-Now that we have an ensemble let's predict back on our holdout dataset and review the results.
+Now that we  have an ensemble, let's  predict back on our  holdout dataset and
+review the results.
 
 ```{r, eval=do_it_compile}
-# Predict back on the holdout dataset.
-# onlySL is set to TRUE so we don't fit algorithms that had weight = 0, saving computation.
+## Predicting back on the holdout dataset.
+##
+## onlySL is set  to TRUE so the  algorithms having no weight  are not called,
+## thus saving computational time
+##
+## Note: it is necessary to provide the training set of covariates; it will be
+## used to carry out imputation
 pred <- predict(sl, newdata = x_holdout, X = x_train, onlySL = TRUE)
 
-# Check the structure of this prediction object.
+## Let's check the structure of this prediction object
 str(pred)
 ```
 
 ```{r, eval=do_it_compile}
-# Review the columns of $library.predict.
+## Let's review the columns of pred$library.predict
 summary(pred$library.predict)
 ```
 
 ```{r, eval=do_it_compile}
-# Histogram of our predicted values.
+## We can plot a histogram of the predicted values...
 ggplot2::qplot(pred$pred[, 1]) + ggplot2::theme_minimal()
 ```
 
 ```{r, eval=do_it_compile}
-# Scatterplot of original values (0, 1) and predicted values.
-# Ideally we would use jitter or slight transparency to deal with overlap.
+## amd a scatterplot of the original values (0 or 1) against the  predicted values
+##
+## Ideally, we would use jitter or slight transparency to deal with overlaps
 ggplot2::qplot(y_holdout, pred$pred[, 1]) + ggplot2::theme_minimal()
 ```
 
 ```{r, eval=do_it_compile}
-# Review AUC - Area Under Curve
+## Let's compute the Area Under Curve (AUC)
 pred_rocr <- ROCR::prediction(pred$pred, y_holdout)
 auc <- ROCR::performance(pred_rocr, measure = "auc", x.measure = "cutoff")@y.values[[1]]
 auc
 ```
 
-AUC can range from 0.5 (no better than chance) to 1.0 (perfect). So at 0.86 we are looking pretty good!
+AUC  can range  from 0.5  (no  better than  chance)  to 1.0  (perfect). So  at
+approximately 0.86 we are looking pretty good!
 
 # Fit ensemble with external cross-validation
 
-What we don't have yet is an estimate of the performance of the ensemble itself. Right now we are just hopeful that the ensemble weights are successful in improving over the best single algorithm.
+What we  don't have  yet is  an estimate  of the  performance of  the ensemble
+itself. Right now we are just hopeful that the ensemble weights are successful
+in improving over the best single algorithm.
 
-In order to estimate the performance of the missSuperLearner ensemble we need an "external" layer of cross-validation, also called nested cross-validation. We generate a separate holdout sample that we don't use to fit the missSuperLearner, which allows it to be a good estimate of the missSuperLearner's performance on unseen data. Typically we would run 10 or 20-fold external cross-validation, but even 5-fold is reasonable.
-
-Another nice result is that we get standard errors on the performance of the individual algorithms and can compare them to the missSuperLearner.
+In order to estimate the performance  of the missSuperLearner ensemble we need
+an    "external"   layer    of    cross-validation.    This    is   done    by
+`missSuperLearner::CV.missSuperLearner`. Note that we also get standard errors
+on the performances of the individual  algorithms and can thus compare them to
+that of the missSuperLearner.
 
 ```{r, eval=do_it_compile}
 set.seed(1)
-
-# Don't have timing info for the CV.SuperLearner unfortunately.
-# So we need to time it manually.
-
+## No timing info available for CV.SuperLearner. We need to time it manually.
 system.time({
-  # This will take about twice as long as the previous SuperLearner.
+  ## This will take about twice as long as the previous SuperLearner
   cv_sl <- CV.missSuperLearner(Y = y_train, X = x_train, family = binomial(),
-                               # For a real analysis we would rather use V = 10.
-                               cvControl = list(V = 2), innerCvControl = list(list(V=2)),
+                               ## for a real analysis we would rather use V = 10
+                               cvControl = list(V = 2), innerCvControl = list(list(V = 2)),
+                               ##
+                               method = SuperLearner::method.NNLS,
                                imputeAlgo = c("mean", "median", "mice"),
-                               SL.library = c("SL.mean", "SL.glmnet", "SL.ranger"))
+                               SL.library = c("SL.mean", "SL.glmnet", "SL.ranger", "SL.grf"))
 })
 ```
 
 ```{r, eval=do_it_compile}
-# We run summary on the cv_sl object rather than simply printing the object.
-summary(cv_sl)
+## We run summary on the cv_sl object rather than simply printing the object
+(cv_sl)
 ```
 
-```{r, eval=do_it_compile}
-# Review the distribution of the best single learner as external CV folds.
+PROBLEM ABOVE!  Need to adapt the  `summary.CV.SuperLearner` function. Simple:
+see "method %in%" and add "SuperLearner::"...
+
+```{r, eval=do_it_compile_2}
+# Let's review the distribution of the best single learner as external CV folds
 table(simplify2array(cv_sl$whichDiscreteSL))
 ```
 
-```{r, eval=do_it_compile}
-# Plot the performance with 95% CIs (use a better ggplot theme).
+```{r, eval=do_it_compile_2}
+# Let's plot the performance with 95% CIs
 plot(cv_sl) + ggplot2::theme_bw()
 ```
 
-We see two missSuperLearner results: "Super Learner" and "Discrete SL". "Discrete SL" chooses the best single learner - in this case `SL.glmnet` (lasso) with median imputation. "Super Learner" takes a weighted average of the learners using the coefficients/weights that we examined earlier. In general "Super Learner" should perform a little better than "Discrete SL".
+We   see  two   missSuperLearner  results:   "Super  Learner"   and  "Discrete
+SL". "Discrete SL" chooses the best  single learner - in this case `SL.glmnet`
+(lasso) with  median imputation. "Super  Learner" takes a weighted  average of
+the  learners using  the  coefficients/weights that  we  examined earlier.  In
+general "Super Learner" should perform a little better than "Discrete SL".
 
 We see based on the outer cross-validation that missSuperLearner is statistically tying with the best algorithm. Our benchmark learner "SL.mean" shows that we get a nice improvement over a naive guess based only on the mean. We could also add "SL.glm" to compare to logistic regression.
 
-# Customize a model hyperparameter
+# Customize a model hyperparameter {#hyperparameters}
 
 Hyperparameters are the configuration settings for an algorithm. OLS has no hyperparameters but essentially every other algorithm does.
 
@@ -258,12 +345,12 @@ There are two ways to customize a hyperparameter: make a new learner function, o
 
 Let's make a variant of random forest that fits more trees, which may increase our accuracy and can't hurt it (outside of small random variation).
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # Review the function argument defaults at the top.
 SuperLearner::SL.ranger
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # Create a new function that changes just the num.trees argument.
 # (We could do this in a single line.)
 # "..." means "all other arguments that were sent to the function"
@@ -280,7 +367,7 @@ cv_sl <- CV.missSuperLearner(Y = y_train, X = x_train, family = binomial(), cvCo
                              SL.library = c("SL.mean", "SL.glmnet", "SL.rf.better", "SL.ranger"))
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # Review results.
 summary(cv_sl)
 ```
@@ -289,7 +376,7 @@ Looks like our new RF is improving performance a bit. Sometimes the performance 
 
 For comparison we can do the same hyperparameter customization with create.Learner().
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # Customize the defaults for random forest.
 SL.ranger <- SuperLearner::SL.ranger
 predict.SL.ranger <- SuperLearner::predict.SL.ranger
@@ -299,18 +386,18 @@ learners <- SuperLearner::create.Learner("SL.ranger", params = list(num.trees = 
 learners
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # List the functions that were created
 learners$names
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # Review the code that was automatically generated for the function.
 # Notice that it's exactly the same as the function we made manually.
 SL.ranger_1
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 set.seed(1)
 
 # Fit the CV.missSuperLearner.
@@ -333,37 +420,37 @@ For random forest there are two particularly important hyperparameters: mtry and
 
 Let's try 3 different mtry options.
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # sqrt(p) is the default value of mtry for classification.
 floor(sqrt(ncol(x_train)))
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # Let's try 3 multiplies of this default: 0.5, 1, and 2.
 (mtry_seq <- floor(sqrt(ncol(x_train)) * c(0.5, 1, 2)))
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 learners <- SuperLearner::create.Learner("SL.ranger", tune = list(mtry = mtry_seq))
 
 # Review the resulting object
 learners
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # Check code for the learners that were created.
 SL.ranger_1
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 SL.ranger_2
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 SL.ranger_3
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 set.seed(1)
 
 # Fit the CV.SuperLearner.
@@ -387,7 +474,7 @@ A key difference with missSuperLearner over caret or other frameworks is that we
 The `missSuperLearner` inherits the multicore parallelization feature from the `SuperLearner`. It is easy to use multiple CPU cores on your computer to speed up the calculations. We first need to setup `R` for multiple cores, then tell `CV.missSuperLearner` to divide its computations across those cores.
 
 Here we show a example using the "snow" system.
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 cl <- parallel::makeCluster(2, type = "PSOCK") # can use different types here
 parallel::clusterSetRNGStream(cl, iseed = 2343)
 testSNOW <- CV.missSuperLearner(Y = y_train, X = x_train, family = binomial(), cvControl = list(V = 3),
@@ -405,7 +492,7 @@ The weights or coefficients of the missSuperLearner are stochastic - they will c
 
 We can write a little function to extract the weights at each `CV.missSuperLearner` iteration and summarize the distribution of those weights. This may be added to the `missSuperLearner` package sometime in the future.
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # Review meta-weights (coefficients) from a CV.missSuperLearner object
 review_weights = function(cv_sl) {
   meta_weights = coef(cv_sl)
@@ -431,16 +518,16 @@ We recommend reviewing the weight distribution for any `missSuperLearner` projec
 When datasets have many covariates our algorithms may benefit from first choosing a subset of available covariates, a step called feature selection. Then we pass only those variables to the modeling algorithm, and it may be less likely to overfit to variables that are not related to the outcome.
 
 Let's revisit `SuperLearner::listWrappers()` and check out the bottom section.
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 SuperLearner::listWrappers()
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 # Review code for corP, which is based on univariate correlation.
 SuperLearner::screen.corP
 ```
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 set.seed(1)
 
 # Fit the missSuperLearner.
@@ -460,7 +547,7 @@ We see a small performance boost by first screening by univarate correlation wit
 
 For binary prediction we are typically trying to maximize AUC, which can be the best performance metric when our outcome variable has some imbalance. In other words, we don't have exactly 50% 1s and 50% 0s in our outcome. Our missSuperLearner is not targeting AUC by default, but it can if we tell it to by specifying our method.
 
-```{r, eval=do_it_compile}
+```{r, eval=do_it_compile_2}
 set.seed(1)
 
 cv_sl <- CV.missSuperLearner(Y = y_train, X = x_train, family = binomial(),
