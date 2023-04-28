@@ -503,7 +503,7 @@ missSuperLearner <- function (Y, X, newX = NULL, family = stats::gaussian(), SL.
       warning(paste("Error in algorithm ", lib$predAlgorithm[index], 
                     " with imputation algorithm ", library$imputeAlgorithm[i],
                     " on full data. \n  The Algorithm will be removed from the Super Learner (i.e. given weight 0). \n"))
-      out <- rep.int(NA, times = nrow(newX))
+      out <- rep.int(NA, times = nrow(newX[[i]]))
     } else {
       out <- testAlg$pred
       if (control$saveFitLibrary) {

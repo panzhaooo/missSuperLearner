@@ -126,19 +126,18 @@ miceImpute <- function(learn, val, mice.params) {
     warning("Replacing failed 'mice' algorithm by simple mean imputation. \n")
     out <- meanImpute(learn, val)
   } else {
-    .average.mice.imp <- function(x) {
-      if (is.factor(x) | is.integer(x)) {
+    .average.mice.imp.factor.integer <- function(x) {
         vals <- unique(x)
-        out <- vals[which.max(tabulate(match(x, vals)))]
-      } else {
-        out <- mean(x)
-      }
-      return(out)
+        vals[which.max(tabulate(match(x, vals)))]
     }
     for (i in 1:length(testMice$imp)) {
       if (nrow(testMice$imp[[i]]) > 0) {
-        imp.vals <- sapply(1:nrow(testMice$imp[[i]]), 
-                           function(j) .average.mice.imp(unlist(testMice$imp[[i]][j, ])))
+        if (is.factor(testMice$imp[[i]][1, 1]) | is.integer(testMice$imp[[i]][1, 1])) {
+          imp.vals <- sapply(1:nrow(testMice$imp[[i]]), 
+                             function(j) .average.mice.imp.factor.integer(unlist(testMice$imp[[i]][j, ])))
+        } else {
+          imp.vals <- rowMeans(testMice$imp[[i]])
+        }
         X[rownames(testMice$imp[[i]]), names(testMice$imp)[i]] <- imp.vals
       }
     }
