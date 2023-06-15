@@ -330,14 +330,18 @@ CV.missSuperLearner <- function (Y, X,
   return(out)
 }
 
-#' @rdname missSuperLearner
+#' Summary Function for Cross-Validated missSuperLearner
+#' @param object An object of class "CV.missSuperLearner", the result of a call to CV.missSuperLearner. 
+#' @param obsWeights Optional vector for observation weights.
+#' @param ... Additional arguments.
+#'
 #' @export
 summary.CV.missSuperLearner <- function(object, obsWeights = NULL, ...){
   if ("env" %in% names(object)) {
-    env = object$env
+    env <- object$env
   }
   else {
-    env = parent.frame()
+    env <- parent.frame()
   }
   method <- if (is.null(as.list(object$call)[["method"]])) {
               method <- "method.NNLS"
@@ -350,7 +354,7 @@ summary.CV.missSuperLearner <- function(object, obsWeights = NULL, ...){
   if (is.call(method)) {
     method <- deparse(substitute(method))
   }
-  library.names <- colnames(coef(object))
+  library.names <- colnames(stats::coef(object))
   V <- object$V
   n <- length(object$SL.predict)
   if (is.null(obsWeights)) {
@@ -377,9 +381,9 @@ summary.CV.missSuperLearner <- function(object, obsWeights = NULL, ...){
                                                 , drop = FALSE], 2, function(x) mean(obsWeights[folds[[ii]]] * 
                                                                                      (Y[folds[[ii]]] - x)^2))
     }
-    se <- (1/sqrt(n)) * c(sd(obsWeights * (Y - SL.predict)^2), 
-                          sd(obsWeights * (Y - discreteSL.predict)^2), apply(library.predict, 
-                                                                             2, function(x) sd(obsWeights * (Y - x)^2)))
+    se <- (1/sqrt(n)) * c(stats::sd(obsWeights * (Y - SL.predict)^2), 
+                          stats::sd(obsWeights * (Y - discreteSL.predict)^2), apply(library.predict, 
+                                                                             2, function(x) stats::sd(obsWeights * (Y - x)^2)))
   }
   else if (method %in% c("method.NNloglik", "method.CC_nloglik",
                          "SuperLearner::method.NNloglik", "SuperLearner::method.CC_nloglik")) {
@@ -413,10 +417,12 @@ summary.CV.missSuperLearner <- function(object, obsWeights = NULL, ...){
   else {
     stop("summary function not available for missSuperLearner with loss function/method used")
   }
-  Table <- data.frame(Algorithm = c("Super Learner", "Discrete SL", 
-                                    library.names), Ave = c(mean(Risk.SL), mean(Risk.dSL), 
-                                                            apply(Risk.library, 1, mean)), se = se, Min = c(min(Risk.SL), 
-                                                                                                            min(Risk.dSL), apply(Risk.library, 1, min)), Max = c(max(Risk.SL), 
+  Table <- data.frame(Algorithm = c("Super Learner", "Discrete SL", library.names),
+                      Ave = c(mean(Risk.SL), mean(Risk.dSL), 
+                              apply(Risk.library, 1, mean)),
+                      se = se, Min = c(min(Risk.SL), min(Risk.dSL),
+                                       apply(Risk.library, 1, min)),
+                      Max = c(max(Risk.SL), 
                                                                                                                                                                  max(Risk.dSL), apply(Risk.library, 1, max)))
   out <- list(call = object$call, method = method, V = V, Risk.SL = Risk.SL, 
               Risk.dSL = Risk.dSL, Risk.library = Risk.library, Table = Table)
@@ -424,8 +430,7 @@ summary.CV.missSuperLearner <- function(object, obsWeights = NULL, ...){
   return(out)
 }
 
-#' @rdname missSuperLearner
-#' @export
+
 print.summary.CV.missSuperLearner <- function(x, digits = max(2, getOption("digits") - 2), ...) {
   cat("\nCall: ", deparse(x$call, width.cutoff = .9*getOption("width")), "\n", fill = getOption("width"))
   cat("Risk is based on: ")

@@ -27,12 +27,14 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Depends: 
     R (>= 3.6.0)
-Imports: 
+Imports:
+    cvAUC,
     grf, 
     mice,
     stats,
     SuperLearner
-Suggests: 
+Suggests:
+    bookdown,
     ggplot2,
     knitr,
     parallel,

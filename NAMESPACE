@@ -2,7 +2,6 @@
 
 S3method(predict,SL.grf)
 S3method(predict,missSuperLearner)
-S3method(print,summary.CV.missSuperLearner)
 S3method(summary,CV.missSuperLearner)
 export(CV.missSuperLearner)
 export(SL.grf)
