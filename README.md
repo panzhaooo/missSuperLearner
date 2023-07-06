@@ -8,7 +8,7 @@ library consists of several super learners.
 
 
 The package is developed by P. Zhao (Inria), N. Gatulle (La Pitié Salpétrière,
-APHP), J.  Josse (Inria) and A.  Chambaz (Université de Paris).
+APHP), J.  Josse (Inria) and A.  Chambaz (Université Paris Cité).
 
 
 ## Introduction
@@ -33,16 +33,16 @@ To cite the package, see
 ## Installation 
 
 Both  a   stable  version  and   a  development  version  are   available  via
-[GitHub](https://github.com/achambaz/missSuperLearner)   and    can   be
+[GitHub](https://github.com/panzhaooo/missSuperLearner)   and    can   be
 installed in R as:
 
 ```r 
-devtools::install_github("achambaz/missSuperLearner", ref = "main")
+devtools::install_github("panzhaooo/missSuperLearner", ref = "main")
 ```
 
 or 
 
 ```r 
-devtools::install_github("achambaz/missSuperLearner", ref = "develop")
+devtools::install_github("panzhaooo/missSuperLearner", ref = "develop")
 ```
 
